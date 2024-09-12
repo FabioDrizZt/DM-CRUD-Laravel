@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Empleado;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class EmpleadoController extends Controller
 {
@@ -45,7 +46,7 @@ class EmpleadoController extends Controller
         // Almacenar el  empleado en la base de datos
         Empleado::insert($datosEmpleados);
         // Redirigir a alguna vista.
-        return response()->json($datosEmpleados);
+        return redirect('empleado')->with('mensaje', 'Empleado creado con exito.');
     }
 
     /**
@@ -65,9 +66,11 @@ class EmpleadoController extends Controller
      * @param  \App\Models\Empleado  $empleado
      * @return \Illuminate\Http\Response
      */
-    public function edit(Empleado $empleado)
+    public function edit($id)
     {
-        //
+        // Método para manejar un GET a empleado/{id_empleado}/edit
+        $empleado = Empleado::findOrFail($id);
+        return view('empleado.edit', compact('empleado'));
     }
 
     /**
@@ -77,9 +80,18 @@ class EmpleadoController extends Controller
      * @param  \App\Models\Empleado  $empleado
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Empleado $empleado)
+    public function update(Request $request, $id)
     {
-        //
+        // recibimos todos los datos menos el _token
+        $datosEmpleados = request()->except('_token','_method');
+        if($request->hasFile('foto')){
+            $empleado = Empleado::findOrFail($id);
+            Storage::delete('public'.$empleado->foto);
+            $datosEmpleados['foto']=$request->file('foto')->store('uploads','public');
+        }
+        // Actualizar al empleado en la BD
+        Empleado::where('id','=',$id)->update($datosEmpleados);
+        return redirect('empleado')->with('mensaje','Empleado editado exitosamente.');
     }
 
     /**
@@ -88,11 +100,13 @@ class EmpleadoController extends Controller
      * @param  \App\Models\Empleado  $empleado
      * @return \Illuminate\Http\Response
      */
-    public function destroy($empleado)
+    public function destroy($id)
     {
+        $empleado = Empleado::findOrFail($id);
+        Storage::delete('public'.$empleado->foto);
         // Borrar el empleado de la BD
-        Empleado::destroy($empleado);
+        Empleado::destroy($id);
         // Redirige a la vista de empleados
-        return redirect('empleado');
+        return redirect('empleado')->with('mensaje', 'Empleado borrado correctamente.');
     }
 }
